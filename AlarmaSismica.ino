@@ -27,25 +27,28 @@
 /************************************
  **              Constantes        **
  ***********************************/
-#define WIFISSID "Hackerspace"
-#define WIFIPASSWORD "IOT12345"
-#define TOPICOALERTA "/alerta"
-#define ENVIARALERTA "/sismo"
+#define WIFISSID "HoneyPot"
+#define WIFIPASSWORD "HoneyNet"
+#define TOPICOALERTA "Alertas"
+#define ENVIARALERTA "Alertas"
 #define TOPICOCONEXION "/conexion"
 #define SALIDALED D5
 #define SALIDABUZZER D6
 #define SALIDARELAY D7
-#define PUERTOMQTT 1883
-#define NOMBREDEALARMA "ArduinoGT"
+#define PUERTOMQTT 19809
+#define NOMBREDEALARMA "Chiquimula"
+#define USUARIOMQTT "alertor"
+#define CLAVEMQTT "alertor"
 
 /************************************
  **           Variables            **
  ***********************************/
 WiFiClient clienteWifi;//este cliente se encarga de la comunicacion con el wifi
 PubSubClient clienteMQTT(clienteWifi);//este utiliza el cliente anterior para hacer poder crear la conexion mqtt
-const char * brokerMqtt = "104.131.134.21";// ip del broker sin http ni nada solo los numeros
+const char * brokerMqtt = "m13.cloudmqtt.com";// ip del broker sin http ni nada solo los numeros
 
 uint32_t ultimoIntentoReconexion;
+volatile uint32_t tiempoEnvio = 0;
 
 
 /************************************
@@ -106,7 +109,7 @@ void callback(char* nombreTopico, byte* mensajeEntrante, unsigned int tamanoMens
 boolean reconexionMQTT() {
   Serial.print("Conectando al broker mqtt");
   //intentando conectar al broker
-  if (clienteMQTT.connect(NOMBREDEALARMA)) {
+  if (clienteMQTT.connect(NOMBREDEALARMA, USUARIOMQTT, CLAVEMQTT)) {
     Serial.println("Conectado");
     //publicamos que estamos conectados
     clienteMQTT.publish("/conexion", "Conectado");
@@ -122,8 +125,7 @@ boolean reconexionMQTT() {
 
 
 boolean sensor() {
-volatile uint32_t tiempoEnvio=0;
-  if(millis()-tiempoEnvio < 5000){
+  if (millis() - tiempoEnvio > 5000) {
     tiempoEnvio = millis();
     return true;
   }
@@ -149,17 +151,19 @@ void loop() {
     uint32_t tiempoActual = millis();
     if (tiempoActual - ultimoIntentoReconexion > 5000) {
       ultimoIntentoReconexion = tiempoActual;
-      // Attempt to reconnect
       if (reconexionMQTT()) {
         ultimoIntentoReconexion = 0;
       }
     }
   } else {
-    // Client connected
-
     if (sensor()) {
       Serial.println("Enviando Alerta");
-      clienteMQTT.publish(ENVIARALERTA, NOMBREDEALARMA);
+      String a = "chiquimula ";
+      a += String(random(99));
+      char s[15];
+      a.toCharArray(s, 15);
+      Serial.println(s);
+      clienteMQTT.publish(ENVIARALERTA, s);
     }
     clienteMQTT.loop();
   }
